@@ -1,0 +1,37 @@
+[bootstrap]
+main_collection = /main/main.collectionc
+render = /orthographic/render/orthographic.renderc
+
+[display]
+width = 960
+height = 640
+
+[script]
+shared_state = 1
+
+[webmonetization]
+payment_pointer = YOUR_PAYMENT_POINTER
+
+[project]
+title = NanoCancer
+dependencies#0 = https://github.com/defold/extension-webmonetization/archive/master.zip
+dependencies#1 = https://github.com/britzl/defold-orthographic/archive/master.zip
+
+[collectionfactory]
+max_count = 2000
+
+[factory]
+max_count = 2000
+
+[sprite]
+max_count = 2000
+
+[physics]
+debug = 0
+gravity_y = 0.0
+max_collision_object_count = 1000
+
+[html5]
+show_made_with_defold = 0
+show_console_banner = 0
+

@@ -1,0 +1,47 @@
+function init(self)
+	self.injected_count = 0
+	self.shake_cycle_finished = true
+	self.main_pos = go.get_position()
+	self.stop_shaking_and_be_a_man = false
+end
+
+function final(self)
+end
+
+function update(self, dt)
+	if self.injected_count > 0 and self.shake_cycle_finished and not self.stop_shaking_and_be_a_man then		
+		self.shake_cycle_finished = false	
+		self.shake_animation = go.animate(".", "position", go.PLAYBACK_ONCE_FORWARD, self.main_pos  + vmath.vector3(math.random(-10,10), math.random(-10,10), 0), go.EASING_INELASTIC, 0.5, 0, function()
+			self.shake_cycle_finished = true
+		end)
+	end
+end
+
+function fixed_update(self, dt)
+
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("INJECTED") then
+		self.injected_count = self.injected_count + 1
+		
+		if self.injected_count == 70 then			
+			msg.post("#collisionobject", "disable")		
+
+			self.stop_shaking_and_be_a_man = true
+			local deadpos = go.get_position() + vmath.vector3(1,1,0) * 5000
+			deadpos.z = 0;			
+			go.set("#sprite", "tint", vmath.vector4(1.2- self.injected_count / 70,1.2 - self.injected_count / 70,1.2 - self.injected_count / 70,1.0))			
+			go.animate(".", "scale", go.PLAYBACK_ONCE_FORWARD,vmath.vector3(0.3), go.EASING_INSINE, 3.2)			
+			go.animate(".", "position", go.PLAYBACK_ONCE_FORWARD, deadpos, go.EASING_INSINE, 50.2, 0, function()
+				go.delete()
+			end)
+		end
+	end
+end
+
+function on_input(self, action_id, action)
+end
+
+function on_reload(self)
+end

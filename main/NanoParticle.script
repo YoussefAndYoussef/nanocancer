@@ -1,0 +1,119 @@
+local SPEED_FACTOR = 700
+local LIMITS_RADIUS = 1200
+local CENTER = vmath.vector3(0,0,0)
+
+function randomFloat(lower, greater)
+	return lower + math.random()  * (greater - lower);
+end
+
+function init(self)
+	local randomX = randomFloat(-0.2,1.0)
+	local randomY = randomFloat(-1.0,1.0)
+	local newTarget = CENTER + vmath.vector3(randomX, randomY, 0.0)
+
+	self.vel = vmath.normalize(newTarget) * SPEED_FACTOR
+	self.rot_factor = randomFloat(-1,1) * 10
+	self.rot = 0
+	self.life_time = 0.0
+	self.injecting = false
+	self.hit_the_edge_count = 0
+	self.can_inject = true
+	
+	--go.set_position(CENTER)
+	msg.post("#collisionobject", "apply_force", {force = self.vel * SPEED_FACTOR, position = go.get_world_position()})
+end
+
+function final(self)
+	-- Add finalization code here
+	-- Learn more: https://defold.com/manuals/script/
+	-- Remove this function if not needed
+end
+
+function setNewtarget(self, newPos)	
+	local randomX = randomFloat(-LIMITS_RADIUS,LIMITS_RADIUS)
+	local randomY = randomFloat(-LIMITS_RADIUS,LIMITS_RADIUS)
+	local newTarget = CENTER + vmath.vector3(randomX, randomY, 0.0)
+
+	self.vel = vmath.normalize(newTarget -newPos) * SPEED_FACTOR
+	self.hit_the_edge_count = self.hit_the_edge_count  + 1
+	if self.hit_the_edge_count >= 0 then
+		self.can_inject = true
+	end
+	msg.post("#collisionobject", "apply_force", {force = self.vel * SPEED_FACTOR, position = go.get_world_position()})
+end
+
+function update(self, dt)
+	local newPos = go.get_position() + dt * self.vel
+	newPos.z = -0.1
+	self.rot = self.rot  + self.rot_factor * dt;
+	self.life_time = self.life_time + dt
+	
+	if(vmath.length((newPos - CENTER)) < LIMITS_RADIUS) then
+		--go.set_position(newPos)
+	else
+		if self.life_time < 5 or self.hit_the_edge_count == 0 then
+			setNewtarget(self, newPos)			
+		end
+	end	
+
+	if self.life_time > 10 then
+		msg.post("#collisionobject", "apply_force", {force = vmath.vector3(200.0,200.0,0.0) * dt, position = go.get_world_position()})
+	end
+	if not self.injecting then
+		local rot_angle = vmath.quat_rotation_z(math.rad(self.rot))	
+		go.set_rotation(rot_angle, self.line)
+	end
+end
+
+function fixed_update(self, dt)
+	-- This function is called if 'Fixed Update Frequency' is enabled in the Engine section of game.project
+	-- Can be coupled with fixed updates of the physics simulation if 'Use Fixed Timestep' is enabled in
+	-- Physics section of game.project
+	-- Add update code here
+	-- Learn more: https://defold.com/manuals/script/
+	-- Remove this function if not needed
+end
+
+function on_message(self, message_id, message, sender)
+	-- Add message-handling code here
+	-- Learn more: https://defold.com/manuals/message-passing/
+	-- Remove this function if not needed	
+	if message_id == hash("collision_response") then
+		if self.can_inject and not self.injecting and message.other_group == hash("tumor") then			
+			self.injecting = true
+			msg.post("#collisionobject", "disable")
+			local curDir = vmath.normalize(message.other_position - go.get_position())
+			local digTo = go.get_position()  + curDir * 80
+			local rotation = vmath.quat_rotation_z(math.atan2(curDir.y, curDir.x) + math.pi / 2)
+			msg.post(message.other_id, hash("INJECTED"))
+			go.animate(".", "rotation", go.PLAYBACK_ONCE_FORWARD,rotation, go.EASING_INSINE, 0.2, 0, function()
+				go.animate(".", "position", go.PLAYBACK_ONCE_FORWARD,digTo, go.EASING_INBOUNCE, 0.5, 0, function()
+					go.animate("#sprite", "tint.w", go.PLAYBACK_ONCE_FORWARD, 0.0, go.EASING_INBOUNCE, 0.5, 0, function()
+						go.delete()							
+					end)					
+				end)
+			end)
+			
+			----, 
+			self.vel = vmath.vector3(0,0,0)
+		end
+	end	
+end
+
+function on_input(self, action_id, action)
+	-- Add input-handling code here. The game object this script is attached to
+	-- must have acquired input focus:
+	--
+	--    msg.post(".", "acquire_input_focus")
+	--
+	-- All mapped input bindings will be received. Mouse and touch input will
+	-- be received regardless of where on the screen it happened.
+	-- Learn more: https://defold.com/manuals/input/
+	-- Remove this function if not needed
+end
+
+function on_reload(self)
+	-- Add reload-handling code here
+	-- Learn more: https://defold.com/manuals/hot-reload/
+	-- Remove this function if not needed
+end
